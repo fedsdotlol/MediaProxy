@@ -1,33 +1,53 @@
 import express from 'express';
 import axios from 'axios';
+import sharp from 'sharp';
 import * as dotenv from 'dotenv';
 import { getStreamFromBuffer } from './bufferUtils';
 
 dotenv.config();
 
 const app = express();
-
 const PORT = process.env.PORT || 3000;
 
 app.get('/', async (req, res) => {
-    if (!req.query || !req.query.url) return res.status(400).send("Missing image URL");
+    if (!req.query || !req.query.url) return res.status(400).send("Missing media URL");
 
     const { url } = req.query;
 
-    if (!/^https?:\/\//.test(`${url}`)) return res.status(400).send("Invalid image URL");
+    if (!/^https?:\/\//.test(`${url}`)) return res.status(400).send("Invalid media URL");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = await axios.get(`${url}`, { responseType: "arraybuffer" }).catch(() => {
-        return res.status(400).send("Invalid image URL");
+        return res.status(400).send("Invalid media URL");
     });
 
-    if (Number(data.status) < 200 || Number(data.status) >= 300) return res.status(400).send("Invalid image URL");
-    if (!data.headers["content-type"].startsWith("image/")) return res.status(400).send("Invalid image URL");
+    if (Number(data.status) < 200 || Number(data.status) >= 300) return res.status(400).send("Invalid media URL");
 
-    const stream = getStreamFromBuffer(data.data);
+    const contentType = String(data.headers["content-type"]);
+    res.set("X-Original-URL", data.request.res.responseUrl);
 
-    res.setHeader("Content-Type", data.headers["content-type"]);
-    return stream.pipe(res);
+    if (contentType.startsWith("image/")) {
+        sharp(data.data).metadata().then((metadata) => {
+            sharp(data.data, { pages: -1 })
+                .resize({
+                    withoutEnlargement: true,
+                    width: 1920,
+                    height: (1920 / metadata.width) * metadata.height
+                })
+                .toFormat('webp', { compression: 'webp' })
+                .toBuffer()
+                .then((buf) => {
+                    res.set("Content-Type", "image/jpeg");
+                    getStreamFromBuffer(buf).pipe(res);
+                }).catch((err) => console.error(err));
+        }).catch((err) => { console.error(err); });
+
+    } else if (contentType.startsWith("video/") || contentType.startsWith("audio/")) {
+        res.set("Content-Type", contentType);
+        return getStreamFromBuffer(data.data).pipe(res);
+    } else {
+        return res.status(400).send("Invalid media URL");
+    }
 });
 
 app.all('*', (req, res) => res.status(404).send("Invalid route"));
