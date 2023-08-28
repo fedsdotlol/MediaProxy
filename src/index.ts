@@ -9,6 +9,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.disable("x-powered-by");
+
 app.get('/', async (req, res) => {
     if (!req.query || !req.query.url) return res.status(400).send("Missing media URL");
 
@@ -32,7 +34,7 @@ app.get('/', async (req, res) => {
                 .resize({
                     withoutEnlargement: true,
                     width: 1920,
-                    height: (1920 / metadata.width) * metadata.height
+                    height: Math.round((1920 / metadata.width) * metadata.height)
                 })
                 .toFormat('webp', { compression: 'webp' })
                 .toBuffer()
