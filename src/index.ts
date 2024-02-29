@@ -16,7 +16,7 @@ app.get('/', async (req, res) => {
 
     const { url } = req.query;
 
-    if (!/^(https?|https?):\/\/([^\/?#]+)(?:\/([^?#]*))?(\?([^#]*))?(#(.*))?$/.test(`${url}`)) return res.status(400).send("Invalid media URL");
+    if (!/^https?:\/\//.test(`${url}`)) return res.status(400).send("Invalid media URL");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = await axios.get(`${url}`, { responseType: "arraybuffer" }).catch(() => {
