@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/fedsdotlol/ImageForwarder#readme",
   "devDependencies": {
-    "@types/node": "^22.15.21",
+    "@types/node": "^22.15.29",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "eslint": "^9.27.0",
